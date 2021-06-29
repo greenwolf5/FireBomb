@@ -37,7 +37,7 @@ public class FireBomb extends FireAbility implements AddonAbility, ComboAbility{
     @Attribute(Attribute.DAMAGE)
     private double damage;
     @Attribute(Attribute.RANGE)
-    private double height;
+    private double verticalSpeed;
 
     private enum State{
         LAUNCHING, FLYING, LANDED
@@ -49,10 +49,10 @@ public class FireBomb extends FireAbility implements AddonAbility, ComboAbility{
     private double radius;
     private int fireTicks;
     private int knockBack;
-    private double horizontalDistance;
+    private double horizontalSpeed;
     private Random random;
     private int delayCounter;
-    private int delayTicks = 20;
+    private int delayTicks = 5;
     private int launchingCounter = 0;
     private int launchingTick = 1;
     private State state;
@@ -66,11 +66,11 @@ public class FireBomb extends FireAbility implements AddonAbility, ComboAbility{
 		}
         cooldown = ConfigManager.getConfig().getLong("ExtraAbilities.Greenwolf5.Fire.FireBomb.Cooldown");
         damage = ConfigManager.getConfig().getInt("ExtraAbilities.Greenwolf5.Fire.FireBomb.Damage");
-        height = ConfigManager.getConfig().getInt("ExtraAbilities.Greenwolf5.Fire.FireBomb.Height");
+        verticalSpeed = ConfigManager.getConfig().getInt("ExtraAbilities.Greenwolf5.Fire.FireBomb.VerticalSpeed");
         radius = ConfigManager.getConfig().getDouble("ExtraAbilities.Greenwolf5.Fire.FireBomb.Radius");
         fireTicks = ConfigManager.getConfig().getInt("ExtraAbilities.Greenwolf5.Fire.FireBomb.FireTicks");
         knockBack = ConfigManager.getConfig().getInt("ExtraAbilities.Greenwolf5.Fire.FireBomb.Knockback");
-        horizontalDistance = ConfigManager.getConfig().getInt("ExtraAbilities.Greenwolf5.Fire.FireBomb.HorizontalDistance");
+        horizontalSpeed = ConfigManager.getConfig().getInt("ExtraAbilities.Greenwolf5.Fire.FireBomb.HorizontalSpeed");
         random = new Random();
         delayCounter = 0;
         this.bPlayer.addCooldown(this);
@@ -124,11 +124,15 @@ public class FireBomb extends FireAbility implements AddonAbility, ComboAbility{
 
     private void launch() {
         if(launchingCounter >= launchingTick){
+            if(!(horizontalSpeed == 0.0) || !(verticalSpeed == 0.0)){ //if both are 0, it does a bug, not *exactly* sure why, so I just don't
             Vector dir = player.getEyeLocation().getDirection();
-		    dir.multiply(horizontalDistance);
-            dir.setY(height);
-            player.setVelocity(dir);
-            location = player.getLocation();
+		    dir.multiply(horizontalSpeed);  
+            dir.setY(verticalSpeed);
+            player.setVelocity(dir.normalize());
+                //after normalzing the dir, it moves a lot better than it without, so I'm doing that
+            }
+            //location = player.getLocation();
+                //might be unnessesary now?
             state = State.FLYING;
         }
         launchingCounter++;
@@ -151,8 +155,9 @@ public class FireBomb extends FireAbility implements AddonAbility, ComboAbility{
         }
 
     private void explode() {
-        player.setFallDistance(0.0F);
-            if(!(location.equals(player.getLocation())) && GeneralMethods.isSolid(player.getLocation().getBlock().getRelative(BlockFace.DOWN))){
+        player.setFallDistance(0.0F);//saftey precaution 
+            if(/*!(location.equals(player.getLocation())) &&*/ GeneralMethods.isSolid(player.getLocation().getBlock().getRelative(BlockFace.DOWN))){
+            //Location was to check if player is not on the same spot, but since the delay, that doesn't do anymore.
             doExplosion(player.getLocation());
             remove();
             }
@@ -162,7 +167,7 @@ public class FireBomb extends FireAbility implements AddonAbility, ComboAbility{
         affectedEntities = GeneralMethods.getEntitiesAroundPoint(location, radius);
         playExplosionParticles(location);
         playFirebendingSound(location);
-        player.getWorld().playSound(location, Sound.ENTITY_GENERIC_EXPLODE, 15, 0F);
+        player.getWorld().playSound(location, Sound.ENTITY_GENERIC_EXPLODE, 15, 0F); //play sounds here so it's quietier lol
         
         for (Entity entity : affectedEntities) {
                 if(entity.getUniqueId() == player.getUniqueId()){
@@ -225,8 +230,8 @@ public class FireBomb extends FireAbility implements AddonAbility, ComboAbility{
          ProjectKorra.plugin.getServer().getPluginManager().addPermission(perm);
          ConfigManager.getConfig().addDefault("ExtraAbilities.Greenwolf5.Fire.FireBomb.Cooldown", 8000);
          ConfigManager.getConfig().addDefault("ExtraAbilities.Greenwolf5.Fire.FireBomb.Damage", 2);
-         ConfigManager.getConfig().addDefault("ExtraAbilities.Greenwolf5.Fire.FireBomb.Height", 1);
-         ConfigManager.getConfig().addDefault("ExtraAbilities.Greenwolf5.Fire.FireBomb.HorizontalDistance", 1);
+         ConfigManager.getConfig().addDefault("ExtraAbilities.Greenwolf5.Fire.FireBomb.VerticalSpeed", 1.3);
+         ConfigManager.getConfig().addDefault("ExtraAbilities.Greenwolf5.Fire.FireBomb.HorizontalSpeed", 1);
          ConfigManager.getConfig().addDefault("ExtraAbilities.Greenwolf5.Fire.FireBomb.Radius", 5);
          ConfigManager.getConfig().addDefault("ExtraAbilities.Greenwolf5.Fire.FireBomb.FireTicks", 0);
          ConfigManager.getConfig().addDefault("ExtraAbilities.Greenwolf5.Fire.FireBomb.Knockback", 2.5);
