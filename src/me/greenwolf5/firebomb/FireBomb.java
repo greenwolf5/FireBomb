@@ -1,12 +1,12 @@
 package me.greenwolf5.firebomb;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-
+import com.projectkorra.projectkorra.Element;
 import com.projectkorra.projectkorra.GeneralMethods;
 import com.projectkorra.projectkorra.ProjectKorra;
 import com.projectkorra.projectkorra.ability.AddonAbility;
+import com.projectkorra.projectkorra.ability.BlueFireAbility;
 import com.projectkorra.projectkorra.ability.ComboAbility;
 import com.projectkorra.projectkorra.ability.FireAbility;
 import com.projectkorra.projectkorra.ability.util.ComboManager.AbilityInformation;
@@ -14,7 +14,6 @@ import com.projectkorra.projectkorra.attribute.Attribute;
 import com.projectkorra.projectkorra.configuration.ConfigManager;
 import com.projectkorra.projectkorra.util.ClickType;
 import com.projectkorra.projectkorra.util.DamageHandler;
-
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.block.BlockFace;
@@ -36,26 +35,29 @@ public class FireBomb extends FireAbility implements AddonAbility, ComboAbility{
     private long cooldown;
     @Attribute(Attribute.DAMAGE)
     private double damage;
-    @Attribute(Attribute.RANGE)
     private double verticalSpeed;
+    private double horizontalSpeed;
+    private double radius;
+    private int fireTicks;
+    private int knockBack;
+    private boolean preventFallDamage;
+
 
     private enum State{
         LAUNCHING, FLYING, LANDED
     }
+    private State state;
+
+    private Permission perm;
+
 
     private List<Entity> affectedEntities;    
-    private Permission perm;
     private Location location;
-    private double radius;
-    private int fireTicks;
-    private int knockBack;
-    private double horizontalSpeed;
     private Random random;
     private int delayCounter;
     private int delayTicks = 5;
     private int launchingCounter = 0;
     private int launchingTick = 1;
-    private State state;
 
     public FireBomb(Player player) {
         super(player);
@@ -64,19 +66,40 @@ public class FireBomb extends FireAbility implements AddonAbility, ComboAbility{
 		if (existing != null) {
 			return;
 		}
-        cooldown = ConfigManager.getConfig().getLong("ExtraAbilities.Greenwolf5.Fire.FireBomb.Cooldown");
-        damage = ConfigManager.getConfig().getInt("ExtraAbilities.Greenwolf5.Fire.FireBomb.Damage");
-        verticalSpeed = ConfigManager.getConfig().getInt("ExtraAbilities.Greenwolf5.Fire.FireBomb.VerticalSpeed");
-        radius = ConfigManager.getConfig().getDouble("ExtraAbilities.Greenwolf5.Fire.FireBomb.Radius");
-        fireTicks = ConfigManager.getConfig().getInt("ExtraAbilities.Greenwolf5.Fire.FireBomb.FireTicks");
-        knockBack = ConfigManager.getConfig().getInt("ExtraAbilities.Greenwolf5.Fire.FireBomb.Knockback");
-        horizontalSpeed = ConfigManager.getConfig().getInt("ExtraAbilities.Greenwolf5.Fire.FireBomb.HorizontalSpeed");
+        setFields();
         random = new Random();
         delayCounter = 0;
         this.bPlayer.addCooldown(this);
         state = State.LAUNCHING;
         start();
     }
+
+    public void setFields(){
+        cooldown = ConfigManager.getConfig().getLong("ExtraAbilities.Greenwolf5.Fire.FireBomb.Cooldown");
+        damage = ConfigManager.getConfig().getInt("ExtraAbilities.Greenwolf5.Fire.FireBomb.Damage");
+        verticalSpeed = ConfigManager.getConfig().getInt("ExtraAbilities.Greenwolf5.Fire.FireBomb.VerticalSpeed");
+        horizontalSpeed = ConfigManager.getConfig().getInt("ExtraAbilities.Greenwolf5.Fire.FireBomb.HorizontalSpeed");
+        radius = ConfigManager.getConfig().getDouble("ExtraAbilities.Greenwolf5.Fire.FireBomb.Radius");
+        fireTicks = ConfigManager.getConfig().getInt("ExtraAbilities.Greenwolf5.Fire.FireBomb.FireTicks");
+        knockBack = ConfigManager.getConfig().getInt("ExtraAbilities.Greenwolf5.Fire.FireBomb.Knockback");
+        preventFallDamage = ConfigManager.getConfig().getBoolean("ExtraAbilities.Greenwolf5.Fire.FireBomb.PreventFallDamage");
+        applyModifiers(damage,cooldown,radius);
+    }
+
+    private void applyModifiers(double damage, double cooldown, double radius) {
+        int damageMod = 0;
+        damageMod = (int)(getDayFactor(damage) - damage);
+        damageMod = (int)(this.bPlayer.canUseSubElement(Element.SubElement.BLUE_FIRE) ? (BlueFireAbility.getDamageFactor() * damage - damage + damageMod) : damageMod);
+        this.damage += damageMod;
+        int cooldownMod = 0;
+        int rangeMod = 0;
+        if(this.bPlayer.canUseSubElement(Element.SubElement.BLUE_FIRE)){
+            cooldownMod = (int)(BlueFireAbility.getCooldownFactor()* cooldown - cooldown);
+            this.cooldown += cooldownMod;
+            rangeMod = (int)(BlueFireAbility.getRangeFactor() * radius - radius);
+            this.radius += rangeMod;
+        }
+      }
 
     @Override
     public long getCooldown() {
@@ -131,8 +154,6 @@ public class FireBomb extends FireAbility implements AddonAbility, ComboAbility{
             player.setVelocity(dir.normalize());
                 //after normalzing the dir, it moves a lot better than it without, so I'm doing that
             }
-            //location = player.getLocation();
-                //might be unnessesary now?
             state = State.FLYING;
         }
         launchingCounter++;
@@ -140,9 +161,11 @@ public class FireBomb extends FireAbility implements AddonAbility, ComboAbility{
 
     private void flying() {
         playFirebendingParticles(player.getLocation(), 2, .2, .2, .2);
-        player.setFallDistance(0.0F);
+        if(preventFallDamage){
+            player.setFallDistance(0.0F);
+        }
         if(random.nextDouble() < .2){
-        playFirebendingSound(player.getLocation());
+            playFirebendingSound(player.getLocation());
         }
             if(delayCounter < delayTicks)
             delayCounter++;
@@ -155,13 +178,13 @@ public class FireBomb extends FireAbility implements AddonAbility, ComboAbility{
         }
 
     private void explode() {
-        player.setFallDistance(0.0F);//saftey precaution 
-            if(/*!(location.equals(player.getLocation())) &&*/ GeneralMethods.isSolid(player.getLocation().getBlock().getRelative(BlockFace.DOWN))){
-            //Location was to check if player is not on the same spot, but since the delay, that doesn't do anymore.
+        if(preventFallDamage){
+        }
+        if( GeneralMethods.isSolid(player.getLocation().getBlock().getRelative(BlockFace.DOWN))){
             doExplosion(player.getLocation());
             remove();
-            }
         }
+    }
 
     private void doExplosion(Location location) {
         affectedEntities = GeneralMethods.getEntitiesAroundPoint(location, radius);
@@ -220,7 +243,7 @@ public class FireBomb extends FireAbility implements AddonAbility, ComboAbility{
 
     @Override
     public String getVersion() {
-        return "1.0.0";
+        return "1.0.1";
     }
 
     @Override
@@ -235,6 +258,7 @@ public class FireBomb extends FireAbility implements AddonAbility, ComboAbility{
          ConfigManager.getConfig().addDefault("ExtraAbilities.Greenwolf5.Fire.FireBomb.Radius", 5);
          ConfigManager.getConfig().addDefault("ExtraAbilities.Greenwolf5.Fire.FireBomb.FireTicks", 0);
          ConfigManager.getConfig().addDefault("ExtraAbilities.Greenwolf5.Fire.FireBomb.Knockback", 2.5);
+         ConfigManager.getConfig().addDefault("ExtraAbilities.Greenwolf5.Fire.FireBomb.PreventFallDamage", true);
          ConfigManager.defaultConfig.save();
          ProjectKorra.plugin.getLogger().info(getName() + " " + getVersion() + " by " + getAuthor() + " has been sucessfuly enabled. Plus Kiam's cool");
         
@@ -247,7 +271,7 @@ public class FireBomb extends FireAbility implements AddonAbility, ComboAbility{
 
     @Override
     public String getDescription() {
-        return "Jump up into the air and slam down with a firey explosion!";
+        return "Shoot yourself upwards, with a velocity based on where you're looking, as you're falling you take no fall damage, allowing the fire bender to use it to jump off from high heights! It can be used when falling or fire-jetting for some extra damage or to give you a safe landing with the knockback.";
     }
 
     @Override
