@@ -179,6 +179,7 @@ public class FireBomb extends FireAbility implements AddonAbility, ComboAbility{
 
     private void explode() {
         if(preventFallDamage){
+            player.setFallDistance(0.0F);
         }
         if( GeneralMethods.isSolid(player.getLocation().getBlock().getRelative(BlockFace.DOWN))){
             doExplosion(player.getLocation());
