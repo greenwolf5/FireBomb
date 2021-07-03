@@ -27,7 +27,7 @@ import org.bukkit.util.Vector;
 /**
  * FireBomb
  * by Greenwolf5
- * Idea and Tester helper CHKirby
+ * Idea and Tester helper Chkirby
  */
 public class FireBomb extends FireAbility implements AddonAbility, ComboAbility{
 
