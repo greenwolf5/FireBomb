@@ -56,8 +56,8 @@ public class FireBomb extends FireAbility implements AddonAbility, ComboAbility{
     private Random random;
     private int delayCounter;
     private int delayTicks = 5;
-    private int launchingCounter = 0;
-    private int launchingTick = 1;
+    //private int launchingCounter = 0;
+    //private int launchingTick = 1;
 
     public FireBomb(Player player) {
         super(player);
@@ -146,7 +146,7 @@ public class FireBomb extends FireAbility implements AddonAbility, ComboAbility{
     }
 
     private void launch() {
-        if(launchingCounter >= launchingTick){
+        //if(launchingCounter >= launchingTick){//I think this was unnessesary? 
             if(!(horizontalSpeed == 0.0) || !(verticalSpeed == 0.0)){ //if both are 0, it does a bug, not *exactly* sure why, so I just don't
             Vector dir = player.getEyeLocation().getDirection();
 		    dir.multiply(horizontalSpeed);  
@@ -155,11 +155,14 @@ public class FireBomb extends FireAbility implements AddonAbility, ComboAbility{
                 //after normalzing the dir, it moves a lot better than it without, so I'm doing that
             }
             state = State.FLYING;
-        }
-        launchingCounter++;
+        //}
+        //launchingCounter++;
     }
 
     private void flying() {
+        if(delayCounter == 0){
+            location = player.getLocation();
+        }
         playFirebendingParticles(player.getLocation(), 2, .2, .2, .2);
         if(preventFallDamage){
             player.setFallDistance(0.0F);
@@ -171,7 +174,7 @@ public class FireBomb extends FireAbility implements AddonAbility, ComboAbility{
             delayCounter++;
 
             if(delayCounter >= delayTicks){
-                if(GeneralMethods.isSolid(player.getLocation().getBlock().getRelative(BlockFace.DOWN))){
+                if(GeneralMethods.getHorizontalDistance(location, player.getLocation()) > 1 && GeneralMethods.isSolid(player.getLocation().getBlock().getRelative(BlockFace.DOWN))){
                     state = State.LANDED;
                 }
             }
