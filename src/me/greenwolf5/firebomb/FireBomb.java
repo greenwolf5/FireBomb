@@ -39,7 +39,7 @@ public class FireBomb extends FireAbility implements AddonAbility, ComboAbility{
     private double horizontalSpeed;
     private double radius;
     private int fireTicks;
-    private int knockBack;
+    private double knockBack;
     private boolean preventFallDamage;
 
 
@@ -49,7 +49,6 @@ public class FireBomb extends FireAbility implements AddonAbility, ComboAbility{
     private State state;
 
     private Permission perm;
-
 
     private List<Entity> affectedEntities;    
     private Location location;
@@ -73,15 +72,15 @@ public class FireBomb extends FireAbility implements AddonAbility, ComboAbility{
         state = State.LAUNCHING;
         start();
     }
-
+    
     public void setFields(){
         cooldown = ConfigManager.getConfig().getLong("ExtraAbilities.Greenwolf5.Fire.FireBomb.Cooldown");
-        damage = ConfigManager.getConfig().getInt("ExtraAbilities.Greenwolf5.Fire.FireBomb.Damage");
-        verticalSpeed = ConfigManager.getConfig().getInt("ExtraAbilities.Greenwolf5.Fire.FireBomb.VerticalSpeed");
-        horizontalSpeed = ConfigManager.getConfig().getInt("ExtraAbilities.Greenwolf5.Fire.FireBomb.HorizontalSpeed");
+        damage = ConfigManager.getConfig().getDouble("ExtraAbilities.Greenwolf5.Fire.FireBomb.Damage");
+        verticalSpeed = ConfigManager.getConfig().getDouble("ExtraAbilities.Greenwolf5.Fire.FireBomb.VerticalSpeed");
+        horizontalSpeed = ConfigManager.getConfig().getDouble("ExtraAbilities.Greenwolf5.Fire.FireBomb.HorizontalSpeed");
         radius = ConfigManager.getConfig().getDouble("ExtraAbilities.Greenwolf5.Fire.FireBomb.Radius");
         fireTicks = ConfigManager.getConfig().getInt("ExtraAbilities.Greenwolf5.Fire.FireBomb.FireTicks");
-        knockBack = ConfigManager.getConfig().getInt("ExtraAbilities.Greenwolf5.Fire.FireBomb.Knockback");
+        knockBack = ConfigManager.getConfig().getDouble("ExtraAbilities.Greenwolf5.Fire.FireBomb.Knockback");
         preventFallDamage = ConfigManager.getConfig().getBoolean("ExtraAbilities.Greenwolf5.Fire.FireBomb.PreventFallDamage");
         applyModifiers(damage,cooldown,radius);
     }
@@ -148,10 +147,10 @@ public class FireBomb extends FireAbility implements AddonAbility, ComboAbility{
     private void launch() {
         //if(launchingCounter >= launchingTick){//I think this was unnessesary? 
             if(!(horizontalSpeed == 0.0) || !(verticalSpeed == 0.0)){ //if both are 0, it does a bug, not *exactly* sure why, so I just don't
-            Vector dir = player.getEyeLocation().getDirection();
+            Vector dir = player.getLocation().getDirection().normalize();
 		    dir.multiply(horizontalSpeed);  
             dir.setY(verticalSpeed);
-            player.setVelocity(dir.normalize());
+            player.setVelocity(dir);//.normalize()
                 //after normalzing the dir, it moves a lot better than it without, so I'm doing that
             }
             state = State.FLYING;
@@ -257,14 +256,14 @@ public class FireBomb extends FireAbility implements AddonAbility, ComboAbility{
          ProjectKorra.plugin.getServer().getPluginManager().addPermission(perm);
          ConfigManager.getConfig().addDefault("ExtraAbilities.Greenwolf5.Fire.FireBomb.Cooldown", 8000);
          ConfigManager.getConfig().addDefault("ExtraAbilities.Greenwolf5.Fire.FireBomb.Damage", 2);
-         ConfigManager.getConfig().addDefault("ExtraAbilities.Greenwolf5.Fire.FireBomb.VerticalSpeed", 1.3);
+         ConfigManager.getConfig().addDefault("ExtraAbilities.Greenwolf5.Fire.FireBomb.VerticalSpeed", 1);
          ConfigManager.getConfig().addDefault("ExtraAbilities.Greenwolf5.Fire.FireBomb.HorizontalSpeed", 1);
          ConfigManager.getConfig().addDefault("ExtraAbilities.Greenwolf5.Fire.FireBomb.Radius", 5);
          ConfigManager.getConfig().addDefault("ExtraAbilities.Greenwolf5.Fire.FireBomb.FireTicks", 0);
-         ConfigManager.getConfig().addDefault("ExtraAbilities.Greenwolf5.Fire.FireBomb.Knockback", 2.5);
+         ConfigManager.getConfig().addDefault("ExtraAbilities.Greenwolf5.Fire.FireBomb.Knockback", .5);
          ConfigManager.getConfig().addDefault("ExtraAbilities.Greenwolf5.Fire.FireBomb.PreventFallDamage", true);
          ConfigManager.defaultConfig.save();
-         ProjectKorra.plugin.getLogger().info(getName() + " " + getVersion() + " by " + getAuthor() + " has been sucessfuly enabled. Plus Kiam's cool");
+         ProjectKorra.plugin.getLogger().info(getName() + " " + getVersion() + " by " + getAuthor() + " has been sucessfuly enabled. Blame Kiam and Kirby for this move.");
         
     }
 
